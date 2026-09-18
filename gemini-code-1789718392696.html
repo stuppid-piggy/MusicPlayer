@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Spotify - Your Library</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 頂部導覽列 */
+        .library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            background-color: #121212;
+            border-bottom: 1px solid #282828;
+            position: relative;
+        }
+        .library-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #1ed760;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 右上角加號與下拉選單 */
+        .header-right {
+            position: relative;
+        }
+        .top-add-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 22px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .top-add-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 45px;
+            background-color: #282828;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            width: 160px;
+            display: none;
+            z-index: 100;
+            overflow: hidden;
+        }
+        .dropdown-item {
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #ffffff;
+        }
+        .dropdown-item:hover {
+            background-color: #3e3e3e;
+            color: #1ed760;
+        }
+
+        /* 主內容區 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #121212;
+            padding: 16px;
+        }
+
+        /* 項目通用樣式 */
+        .item-row {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: background-color 0.2s;
+        }
+        .item-row:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .item-icon {
+            font-size: 20px;
+            width: 36px;
+            text-align: center;
+        }
+        .item-details {
+            flex: 1;
+            margin-left: 12px;
+            overflow: hidden;
+        }
+        .item-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-sub {
+            font-size: 12px;
+            color: #b3b3b3;
+            margin-top: 2px;
+        }
+
+        /* 資料夾右側的專屬小加號按鈕 */
+        .add-to-folder-btn {
+            background: none;
+            border: none;
+            color: #b3b3b3;
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .add-to-folder-btn:hover {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 自製彈窗 Modal 樣式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-box {
+            background-color: #282828;
+            padding: 24px;
+            border-radius: 12px;
+            width: 320px;
+            max-width: 90%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #ffffff;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: #181818;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+        .modal-input:focus {
+            border-color: #1ed760;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+        .modal-btn.cancel {
+            background-color: transparent;
+            color: #b3b3b3;
+        }
+        .modal-btn.cancel:hover {
+            color: #ffffff;
+        }
+        .modal-btn.confirm {
+            background-color: #1ed760;
+            color: #000000;
+        }
+        .modal-btn.confirm:hover {
+            background-color: #1fdf64;
+        }
+        .modal-folder-item {
+            padding: 10px 12px;
+            background: #181818;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .modal-folder-item:hover {
+            background: #3e3e3e;
+            color: #1ed760;
+        }
+
+        /* 底部 Spotify 播放控制列 */
+        .player-bar {
+            background-color: #000000;
+            border-top: 1px solid #282828;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .player-meta {
+            font-size: 13px;
+            color: #b3b3b3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .player-meta span {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        audio {
+            width: 100%;
+            height: 32px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 頂部標題區 -->
+    <div class="library-header">
+        <button class="back-btn" id="backBtn" onclick="showFolderView()">❮ 返回資料夾</button>
+        <div class="library-title" id="headerTitle">你的音樂庫</div>
+        
+        <!-- 右上角加號選單 -->
+        <div class="header-right">
+            <button class="top-add-btn" onclick="toggleAddMenu(event)">+</button>
+            <div id="addMenu" class="dropdown-menu">
+                <div class="dropdown-item" onclick="openFolderModal()">📁 新增資料夾</div>
+                <div class="dropdown-item" onclick="triggerGlobalSongUpload()">🎵 新增歌曲 (選擇目標)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隱藏的上傳用 inputs -->
+    <input type="file" id="globalAudioInput" accept="audio/*" multiple style="display:none;" onchange="handleGlobalSongsSelected(event)">
+    <input type="file" id="targetFolderAudioInput" accept="audio/*" multiple style="display:none;" onchange="handleTargetFolderSongsSelected(event)">
+
+    <!-- 內容展示區 -->
+    <div class="content-area" id="contentArea"></div>
+
+    <!-- 1. 自製輸入資料夾名稱的彈窗 Modal -->
+    <div class="modal-overlay" id="folderModalOverlay">
+        <div class="modal-box">
+            <div class="modal-title">新增資料夾</div>
+            <input type="text" id="folderNameInput" class="modal-input" placeholder="例如：廣東歌、電音派對..." autocomplete="off">
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeFolderModal()">取消</button>
+                <button class="modal-btn confirm" onclick="confirmCreateFolder()">建立</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 全域新增歌曲時：選擇目標資料夾的彈窗 Modal -->
+    <div class="modal-overlay" id="songModalOverlay">
+        <div class="modal-box">
+            <div class="modal-title">選擇要加入的資料夾</div>
+            <div id="modalFolderList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeSongModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部播放器 -->
+    <div class="player-bar">
+        <div class="player-meta" id="playerMeta">未在播放</div>
+        <audio id="audioPlayer" controls></audio>
+    </div>
+
+    <script>
+        let folders = [
+            { id: 'fav', name: '我的最愛', songs: [] }
+        ];
+
+        let currentView = 'folders'; // 'folders' 或 'songs'
+        let activeFolderIndex = null;
+        let currentPlayingIndex = -1;
+        let pendingFiles = [];
+        let targetUploadFolderIndex = null;
+
+        const contentArea = document.getElementById('contentArea');
+        const headerTitle = document.getElementById('headerTitle');
+        const backBtn = document.getElementById('backBtn');
+        const addMenu = document.getElementById('addMenu');
+        
+        const folderModalOverlay = document.getElementById('folderModalOverlay');
+        const folderNameInput = document.getElementById('folderNameInput');
+        const songModalOverlay = document.getElementById('songModalOverlay');
+        const modalFolderList = document.getElementById('modalFolderList');
+        
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playerMeta = document.getElementById('playerMeta');
+
+        // 點擊空白處關閉右上角選單
+        window.addEventListener('click', () => {
+            addMenu.style.display = 'none';
+        });
+
+        function toggleAddMenu(event) {
+            event.stopPropagation();
+            addMenu.style.display = addMenu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // --- 新增資料夾邏輯 ---
+        function openFolderModal() {
+            folderNameInput.value = '';
+            folderModalOverlay.style.display = 'flex';
+            setTimeout(() => folderNameInput.focus(), 50);
+        }
+
+        function closeFolderModal() {
+            folderModalOverlay.style.display = 'none';
+        }
+
+        function confirmCreateFolder() {
+            const folderName = folderNameInput.value.trim();
+            if (folderName !== "") {
+                folders.push({ id: Date.now().toString(), name: folderName, songs: [] });
+                if (currentView === 'folders') {
+                    renderFolderView();
+                }
+            }
+            closeFolderModal();
+        }
+
+        folderNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                confirmCreateFolder();
+            }
+        });
+
+        // --- 右上角選單：全域新增歌曲（需選目標資料夾） ---
+        function triggerGlobalSongUpload() {
+            document.getElementById('globalAudioInput').click();
+        }
+
+        function handleGlobalSongsSelected(event) {
+            pendingFiles = Array.from(event.target.files);
+            if (pendingFiles.length === 0) return;
+
+            modalFolderList.innerHTML = '';
+            folders.forEach((folder, idx) => {
+                const div = document.createElement('div');
+                div.className = 'modal-folder-item';
+                div.textContent = `📁 ${folder.name} (${folder.songs.length} 首)`;
+                div.onclick = () => confirmAddToFolder(idx);
+                modalFolderList.appendChild(div);
+            });
+
+            songModalOverlay.style.display = 'flex';
+            event.target.value = '';
+        }
+
+        function closeSongModal() {
+            songModalOverlay.style.display = 'none';
+            pendingFiles = [];
+        }
+
+        function confirmAddToFolder(folderIndex) {
+            folders[folderIndex].songs.push(...pendingFiles);
+            closeSongModal();
+            
+            if (currentView === 'songs' && activeFolderIndex === folderIndex) {
+                renderSongView();
+            } else if (currentView === 'folders') {
+                renderFolderView();
+            }
+        }
+
+        // --- 資料夾右側小加號：直接新增歌曲到特定資料夾 ---
+        function triggerTargetFolderUpload(event, folderIndex) {
+            event.stopPropagation();
+            targetUploadFolderIndex = folderIndex;
+            document.getElementById('targetFolderAudioInput').click();
+        }
+
+        function handleTargetFolderSongsSelected(event) {
+            const files = Array.from(event.target.files);
+            if (files.length > 0 && targetUploadFolderIndex !== null) {
+                folders[targetUploadFolderIndex].songs.push(...files);
+                if (currentView === 'folders') {
+                    renderFolderView();
+                } else if (currentView === 'songs' && activeFolderIndex === targetUploadFolderIndex) {
+                    renderSongView();
+                }
+            }
+            event.target.value = '';
+            targetUploadFolderIndex = null;
+        }
+
+        // --- 畫面渲染與播放邏輯 ---
+        function renderFolderView() {
+            currentView = 'folders';
+            headerTitle.textContent = '你的音樂庫';
+            backBtn.style.display = 'none';
+            contentArea.innerHTML = '';
+
+            folders.forEach((folder, index) => {
+                const row = document.createElement('div');
+                row.className = 'item-row';
+                row.innerHTML = `
+                    <div class="item-icon">📁</div>
+                    <div class="item-details" onclick="openFolder(${index})">
+                        <div class="item-name">${folder.name}</div>
+                        <div class="item-sub">${folder.songs.length} 首歌曲</div>
+                    </div>
+                    <button class="add-to-folder-btn" title="新增歌曲至此資料夾" onclick="triggerTargetFolderUpload(event, ${index})">+</button>
+                `;
+                contentArea.appendChild(row);
+            });
+        }
+
+        function openFolder(index) {
+            currentView = 'songs';
+            activeFolderIndex = index;
+            const folder = folders[index];
+            
+            headerTitle.textContent = folder.name;
+            backBtn.style.display = 'flex';
+            renderSongView();
+        }
+
+        function renderSongView() {
+            contentArea.innerHTML = '';
+            const folder = folders[activeFolderIndex];
+
+            if (folder.songs.length === 0) {
+                contentArea.innerHTML = `<div style="color: #b3b3b3; font-size: 14px; text-align: center; margin-top: 40px;">此資料夾尚無歌曲，請點擊右側的「+」或右上角新增音樂</div>`;
+                return;
+            }
+
+            folder.songs.forEach((file, index) => {
+                const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                const row = document.createElement('div');
+                row.className = `item-row`;
+                row.innerHTML = `
+                    <div class="item-icon" style="font-size: 14px; color: #b3b3b3;">${index + 1}</div>
+                    <div class="item-details" onclick="playSong(${index})">
+                        <div class="item-name" style="${currentPlayingIndex === index ? 'color: #1ed760;' : ''}">${nameWithoutExt}</div>
+                        <div class="item-sub">本地音樂檔案</div>
+                    </div>
+                `;
+                contentArea.appendChild(row);
+            });
+        }
+
+        function showFolderView() {
+            renderFolderView();
+        }
+
+        function playSong(index) {
+            const folder = folders[activeFolderIndex];
+            currentPlayingIndex = index;
+            const file = folder.songs[index];
+            const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+
+            audioPlayer.src = URL.createObjectURL(file);
+            audioPlayer.play().catch(e => console.log("播放被阻擋：", e));
+            playerMeta.innerHTML = `正在播放：<span>${nameWithoutExt}</span>`;
+            
+            // 設定 Media Session API，讓手機鎖屏、控制中心或藍牙耳機可以直接控制播放與切歌
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: nameWithoutExt,
+                    artist: `Spotify 音樂庫 - ${folder.name}`,
+                    album: '本地音樂播放器'
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => { audioPlayer.play(); });
+                navigator.mediaSession.setActionHandler('pause', () => { audioPlayer.pause(); });
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    if (currentPlayingIndex > 0) playSong(currentPlayingIndex - 1);
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    if (currentPlayingIndex < folder.songs.length - 1) playSong(currentPlayingIndex + 1);
+                });
+            }
+
+            if (currentView === 'songs') {
+                renderSongView();
+            }
+        }
+
+        audioPlayer.addEventListener('ended', () => {
+            if (activeFolderIndex === null) return;
+            const folder = folders[activeFolderIndex];
+            let nextIndex = currentPlayingIndex + 1;
+            if (nextIndex < folder.songs.length) {
+                playSong(nextIndex);
+            } else {
+                playSong(0); // 循環播放第一首
+            }
+        });
+
+        // 初始化
+        renderFolderView();
+    </script>
+
+</body>
+</html>
